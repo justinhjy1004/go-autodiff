@@ -2,6 +2,7 @@ package datastructs
 
 import (
 	"errors"
+	"fmt"
 	"math"
 	"slices"
 )
@@ -14,7 +15,7 @@ type Node struct {
 	Partial_derivative float64
 }
 
-func (n Node) Get_parents() []Node {
+func (n Node) GetParents() []Node {
 	return n.Parents
 }
 
@@ -105,7 +106,7 @@ func Cos(x Node) Node {
 	return result
 }
 
-func inductive_topological_sort(n Node, result *[]*Node) {
+func inductiveTopologicalSort(n Node, result *[]*Node) {
 
 	if len(n.Parents) == 0 {
 
@@ -120,7 +121,7 @@ func inductive_topological_sort(n Node, result *[]*Node) {
 	for _, parent := range n.Parents {
 
 		if !slices.Contains(*result, &parent) {
-			inductive_topological_sort(parent, result)
+			inductiveTopologicalSort(parent, result)
 		}
 	}
 
@@ -129,14 +130,14 @@ func inductive_topological_sort(n Node, result *[]*Node) {
 }
 
 // Given a single output, backward trace the dependencies
-func Base_topological_sort(n Node) []*Node {
+func BaseTopologicalSort(n Node) []*Node {
 
 	result := []*Node{}
 
 	for _, parent := range n.Parents {
 
 		if !slices.Contains(result, &parent) {
-			inductive_topological_sort(parent, &result)
+			inductiveTopologicalSort(parent, &result)
 		}
 
 	}
@@ -146,21 +147,11 @@ func Base_topological_sort(n Node) []*Node {
 	return result
 }
 
-// TODO
-func Dependencies(nodes []Node) [][]Node {
+// Print Topological Sort Outcome
+func PrintTopologicalSort(node Node) {
 
-	// initialize slice matrix
-	num_input := len(nodes)
-	descendents := make([][]Node, len(nodes))
-
-	for i := 0; i < num_input; i++ {
-		descendents[i] = append(descendents[i], nodes[i])
+	for _, n := range BaseTopologicalSort(node) {
+		fmt.Printf("%s, %f \n", n.Operation, n.Value)
 	}
-
-	// for each n
-
-	//var n Node = nodes[0]
-
-	return [][]Node{}
 
 }

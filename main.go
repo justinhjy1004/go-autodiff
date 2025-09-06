@@ -9,8 +9,6 @@ import (
 
 func main() {
 
-	fmt.Println("Hello")
-
 	n1 := datastructs.Input(6)
 	n2 := datastructs.Input(4)
 	n3 := datastructs.Input(0.5)
@@ -23,9 +21,11 @@ func main() {
 
 	v1 := datastructs.Add(LogN2, datastructs.Mul(datastructs.Sin(n3), datastructs.Mul(n1, n2)))
 
-	fmt.Println(datastructs.Base_topological_sort(v1))
+	sortedNodes := datastructs.BaseTopologicalSort(v1)
+	//fmt.Println(sortedNodes)
 
-	for _, n := range datastructs.Base_topological_sort(v1) {
+	for _, n := range sortedNodes {
+		fmt.Println(*n)
 		fmt.Printf("%s, %f \n", n.Operation, n.Value)
 	}
 }
