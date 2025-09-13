@@ -160,6 +160,8 @@ func BaseTopologicalSort(n *Node) []*Node {
 
 	result = append([]*Node{n}, result...)
 
+	slices.Reverse(result)
+
 	return result
 }
 
@@ -168,6 +170,33 @@ func PrintTopologicalSort(node Node) {
 
 	for _, n := range BaseTopologicalSort(&node) {
 		fmt.Printf("%s, %f \n", n.Operation, n.Value)
+	}
+
+}
+
+func InductionDerivative(currentNode *Node, sortedNodes []*Node) float64 {
+
+	var derivative float64 = 0
+
+	if currentNode.Operation == "input" {
+
+		if slices.Contains(sortedNodes, currentNode) {
+			return 1
+		} else {
+			return 0
+		}
+
+	} else {
+		for i, parent := range currentNode.Parents {
+
+			if slices.Contains(sortedNodes, parent) {
+
+				derivative = derivative + InductionDerivative(parent, sortedNodes)*currentNode.Grad_wrt_parents[i]
+
+			}
+		}
+
+		return derivative
 	}
 
 }
