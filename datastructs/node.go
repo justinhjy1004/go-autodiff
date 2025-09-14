@@ -2,31 +2,29 @@ package datastructs
 
 import (
 	"errors"
-	"fmt"
 	"math"
 	"slices"
 )
 
+// Node struct to implement computation graph
 type Node struct {
-	Value              float64
-	Parents            []*Node
-	Children           []*Node
-	Operation          string
-	Grad_wrt_parents   []float64
-	Partial_derivative float64
+	Value            float64 //holds value of current computational step
+	Parents          []*Node // parents of the current node
+	Children         []*Node
+	Operation        string    // what operation was performed on the value of the parents
+	Grad_wrt_parents []float64 // dnode/dparents
 }
 
-func (n Node) GetParents() []*Node {
-	return n.Parents
-}
-
+// Input node
 func Input(x float64) Node {
 
-	input_node := Node{Value: x, Operation: "input", Partial_derivative: 0}
+	input_node := Node{Value: x, Operation: "input"}
 
 	return input_node
 }
 
+// Multiply node, binary operation that leads to a new node
+// WARNING: I am assuming that x and y are not f(x) and f(y) but constants wrt to the derived input
 func Mul(x *Node, y *Node) *Node {
 
 	// Only fo constants though
@@ -35,7 +33,7 @@ func Mul(x *Node, y *Node) *Node {
 	grad_wrt_parents := []float64{y.Value, x.Value}
 	parents := []*Node{x, y}
 
-	result := Node{Value: value, Operation: operation, Grad_wrt_parents: grad_wrt_parents, Parents: parents, Partial_derivative: 0}
+	result := Node{Value: value, Operation: operation, Grad_wrt_parents: grad_wrt_parents, Parents: parents}
 
 	x.Children = append(x.Children, &result)
 	y.Children = append(y.Children, &result)
@@ -44,6 +42,7 @@ func Mul(x *Node, y *Node) *Node {
 
 }
 
+// Addition node, also a binary operation
 func Add(x *Node, y *Node) *Node {
 
 	value := x.Value + y.Value
@@ -51,7 +50,7 @@ func Add(x *Node, y *Node) *Node {
 	grad_wrt_parents := []float64{1, 1}
 	parents := []*Node{x, y}
 
-	result := Node{Value: value, Operation: operation, Grad_wrt_parents: grad_wrt_parents, Parents: parents, Partial_derivative: 0}
+	result := Node{Value: value, Operation: operation, Grad_wrt_parents: grad_wrt_parents, Parents: parents}
 
 	x.Children = append(x.Children, &result)
 	y.Children = append(y.Children, &result)
@@ -59,6 +58,7 @@ func Add(x *Node, y *Node) *Node {
 	return &result
 }
 
+// Subtraction node, also a binary operation
 func Sub(x *Node, y *Node) *Node {
 
 	value := x.Value - y.Value
@@ -66,7 +66,7 @@ func Sub(x *Node, y *Node) *Node {
 	grad_wrt_parents := []float64{1, -1}
 	parents := []*Node{x, y}
 
-	result := Node{Value: value, Operation: operation, Grad_wrt_parents: grad_wrt_parents, Parents: parents, Partial_derivative: 0}
+	result := Node{Value: value, Operation: operation, Grad_wrt_parents: grad_wrt_parents, Parents: parents}
 
 	x.Children = append(x.Children, &result)
 	y.Children = append(y.Children, &result)
@@ -74,7 +74,7 @@ func Sub(x *Node, y *Node) *Node {
 	return &result
 }
 
-// TODO
+// Calculates the natural log
 func Log(x *Node) (*Node, error) {
 
 	if x.Value <= 0 {
@@ -94,6 +94,7 @@ func Log(x *Node) (*Node, error) {
 
 }
 
+// Sin function
 func Sin(x *Node) *Node {
 
 	value := math.Sin(x.Value)
@@ -108,6 +109,7 @@ func Sin(x *Node) *Node {
 	return &result
 }
 
+// Cosine function
 func Cos(x *Node) *Node {
 
 	value := math.Cos(x.Value)
@@ -121,6 +123,25 @@ func Cos(x *Node) *Node {
 
 	return &result
 }
+
+// Polynomial term
+func Pol(x *Node, power float64, coefficient float64) *Node {
+
+	value := coefficient * math.Pow(x.Value, power)
+	operation := "pol"
+	grad_wrt_parents := []float64{coefficient * power * math.Pow(x.Value, power-1)}
+	parents := []*Node{x}
+
+	result := Node{Value: value, Operation: operation, Grad_wrt_parents: grad_wrt_parents, Parents: parents}
+
+	x.Children = append(x.Children, &result)
+
+	return &result
+}
+
+/*
+	Inductive step of topological sort (see function below)
+*/
 
 func inductiveTopologicalSort(n *Node, result *[]*Node) {
 
@@ -145,7 +166,10 @@ func inductiveTopologicalSort(n *Node, result *[]*Node) {
 
 }
 
-// Given a single output, backward trace the dependencies
+/*
+Input: Pointer of the input of equation. (ie. Creates the topological sort of the computation graph wrt dy/dinput)
+Returns: Backward trace the dependencies starting from output
+*/
 func BaseTopologicalSort(n *Node) []*Node {
 
 	result := []*Node{}
@@ -165,15 +189,10 @@ func BaseTopologicalSort(n *Node) []*Node {
 	return result
 }
 
-// Print Topological Sort Outcome
-func PrintTopologicalSort(node Node) {
-
-	for _, n := range BaseTopologicalSort(&node) {
-		fmt.Printf("%s, %f \n", n.Operation, n.Value)
-	}
-
-}
-
+/*
+Input: Takes the first node of the inverted topological sort (output), and the topological sorted nodes
+Output: The partial derivative wrt to the input
+*/
 func InductionDerivative(currentNode *Node, sortedNodes []*Node) float64 {
 
 	var derivative float64 = 0
@@ -199,4 +218,26 @@ func InductionDerivative(currentNode *Node, sortedNodes []*Node) float64 {
 		return derivative
 	}
 
+}
+
+/*
+Input: Takes a slice of Node pointers. They should be inputs Nodes
+Output: slice of partial derivatives in the same order
+*/
+func Partial_Derivative(inputs []*Node) ([]float64, error) {
+
+	partial_derivatives := make([]float64, len(inputs))
+
+	for i, input := range inputs {
+
+		if input.Operation != "input" {
+			return partial_derivatives, errors.New("what are you even doing bro? we need inputs")
+		}
+
+		topSort := BaseTopologicalSort(input)
+		partial_derivatives[i] = InductionDerivative(topSort[0], topSort)
+
+	}
+
+	return partial_derivatives, nil
 }
